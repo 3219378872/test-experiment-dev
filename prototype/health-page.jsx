@@ -9,8 +9,10 @@ const fmtDateTime = (ts) => {
 
 // 折线图:日均值节点 + 理想区间双虚线 + 悬停数据框,右上角卡片式指标切换
 function HealthChart({ nodes, range, metricId, setMetricId, warnFrac }) {
-  const { useState } = React;
+  const { useState, useRef, useEffect } = React;
   const [hover, setHover] = useState(null);   // 节点下标
+  const svgRef = useRef(null);
+  const scrubRef = useRef(() => {});
   const meta = HEALTH_METRICS[metricId];
   const isW = metricId === 'weight';
   const fmtVal = (v) => (isW ? v.toFixed(1) : String(Math.round(v)));
@@ -29,6 +31,34 @@ function HealthChart({ nodes, range, metricId, setMetricId, warnFrac }) {
   const xTicks = [0, 1, 2, 3, 4].map((i) => t0 + ((t1 - t0) * i) / 4);
 
   const hv = hover != null ? nodes[hover] : null;
+
+  // 根据指针/手指横坐标吸附到最近节点
+  scrubRef.current = (clientX) => {
+    const el = svgRef.current;
+    if (!el || nodes.length === 0) return;
+    const rect = el.getBoundingClientRect();
+    const xSvg = ((clientX - rect.left) / rect.width) * W;
+    let best = 0, bd = Infinity;
+    nodes.forEach((n, i) => {
+      const d = Math.abs(X(n.day) - xSvg);
+      if (d < bd) { bd = d; best = i; }
+    });
+    setHover(best);
+  };
+
+  // 触控:阻止页面滚动,手指滑动时移动聚焦节点(需 passive:false,故用原生监听)
+  useEffect(() => {
+    const el = svgRef.current; if (!el) return;
+    const onTouch = (e) => {
+      e.preventDefault();
+      const pt = e.touches[0];
+      if (pt) scrubRef.current(pt.clientX);
+    };
+    el.addEventListener('touchstart', onTouch, { passive: false });
+    el.addEventListener('touchmove', onTouch, { passive: false });
+    return () => { el.removeEventListener('touchstart', onTouch); el.removeEventListener('touchmove', onTouch); };
+  }, []);
+
   const prev = hover != null && hover > 0 ? nodes[hover - 1] : null;
   let diffText = '首个记录日';
   if (hv && prev) {
@@ -60,7 +90,14 @@ function HealthChart({ nodes, range, metricId, setMetricId, warnFrac }) {
       </div>
 
       <div className="hchart-body" onMouseLeave={() => setHover(null)}>
-        <svg className="hchart-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={meta.label + '近一个月折线图'}>
+        <svg
+          ref={svgRef}
+          className="hchart-svg"
+          viewBox={`0 0 ${W} ${H}`}
+          role="img"
+          aria-label={meta.label + '近一个月折线图'}
+          onMouseMove={(e) => scrubRef.current(e.clientX)}
+        >
           {yTicks.map((v, i) => (
             <g key={i}>
               <line className="hchart-grid" x1={L} y1={Y(v)} x2={W - R} y2={Y(v)}></line>
@@ -80,20 +117,13 @@ function HealthChart({ nodes, range, metricId, setMetricId, warnFrac }) {
           <path className="hchart-line" d={path} stroke={`oklch(0.72 0.1 ${meta.hue})`}></path>
 
           {nodes.map((n, i) => (
-            <g key={n.day}>
-              <circle
-                className="hchart-node"
-                cx={X(n.day)} cy={Y(n.value)}
-                r={hover === i ? 6 : 4.4}
-                fill={statusDot(n.status)}
-              ></circle>
-              <circle
-                className="hchart-hit"
-                cx={X(n.day)} cy={Y(n.value)} r="12"
-                onMouseEnter={() => setHover(i)}
-                onTouchStart={() => setHover(i)}
-              ></circle>
-            </g>
+            <circle
+              key={n.day}
+              className="hchart-node"
+              cx={X(n.day)} cy={Y(n.value)}
+              r={hover === i ? 6 : 4.4}
+              fill={statusDot(n.status)}
+            ></circle>
           ))}
         </svg>
 
@@ -112,7 +142,7 @@ function HealthChart({ nodes, range, metricId, setMetricId, warnFrac }) {
           </div>
         )}
       </div>
-      <div className="hchart-hint">悬停 / 触摸节点查看详情 · 虚线为理想区间{isW ? '' : ' (收缩压)'}</div>
+      <div className="hchart-hint">在图表上滑动 / 悬停查看详情 · 虚线为理想区间{isW ? '' : ' (收缩压)'}</div>
     </div>
   );
 }

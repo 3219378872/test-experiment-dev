@@ -26,6 +26,9 @@ function AppShell() {
   const toggleTask = (id) =>
     setTasks((ts) => ts.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
 
+  const updateTask = ({ id, cat, text, startAt, dueAt }) =>
+    setTasks((ts) => ts.map((t) => (t.id === id ? { ...t, cat, text, startAt, dueAt } : t)));
+
   const addTask = ({ cat, text, startAt, dueAt }) =>
     setTasks((ts) => [...ts, { id: 't' + Date.now(), cat, text, createdAt: Date.now(), startAt, dueAt, done: false }]);
 
@@ -37,7 +40,7 @@ function AppShell() {
       <div className="phone">
         <main className="screen" data-screen-label={tab === 'todo' ? '待办页' : tab === 'expense' ? '支出页' : '健康页'}>
           {tab === 'todo'
-            ? <TodoPage tasks={tasks} now={now} onToggle={toggleTask} onAdd={addTask} />
+            ? <TodoPage tasks={tasks} now={now} onToggle={toggleTask} onAdd={addTask} onUpdate={updateTask} />
             : tab === 'expense'
               ? <ExpensePage />
               : <HealthPage warnFrac={tweaks.warnPct / 100} />}

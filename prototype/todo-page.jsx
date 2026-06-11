@@ -17,7 +17,7 @@ function TaskCheck({ checked, ink, onToggle }) {
       className={'task-check' + (checked ? ' is-checked' : '') + (pulse ? ' is-pulsing' : '')}
       style={{ '--check-ink': ink }}
       aria-label={checked ? '标记为未完成' : '标记为完成'}
-      onClick={() => { setPulse(false); requestAnimationFrame(() => setPulse(true)); onToggle(); }}
+      onClick={(e) => { e.stopPropagation(); setPulse(false); requestAnimationFrame(() => setPulse(true)); onToggle(); }}
       onAnimationEnd={() => setPulse(false)}
     >
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
@@ -27,7 +27,7 @@ function TaskCheck({ checked, ink, onToggle }) {
   );
 }
 
-function TaskCard({ task, now, onToggle }) {
+function TaskCard({ task, now, onToggle, onEdit }) {
   const st = taskStatus(task, now);
   const sty = TODO_STATUS_STYLE[st];
   const cat = TASK_CATS[task.cat];
@@ -35,7 +35,15 @@ function TaskCard({ task, now, onToggle }) {
   const showBar = (st === 'upcoming' || st === 'active');
 
   return (
-    <div className={'task-card status-' + st} style={{ background: sty.bg }}>
+    <div
+      className={'task-card status-' + st}
+      style={{ background: sty.bg }}
+      role="button"
+      tabIndex={0}
+      aria-label={'编辑待办:' + task.text}
+      onClick={onEdit}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(); } }}
+    >
       {showBar && (
         <div className="task-bar-track" style={{ background: sty.barTrack }}>
           <div className="task-bar-fill" style={{ width: (ratio * 100).toFixed(2) + '%', background: sty.bar }}></div>
@@ -57,9 +65,10 @@ function TaskCard({ task, now, onToggle }) {
   );
 }
 
-function TodoPage({ tasks, now, onToggle, onAdd }) {
+function TodoPage({ tasks, now, onToggle, onAdd, onUpdate }) {
   const { useState, useLayoutEffect } = React;
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState(null);   // 被编辑的 task
   const itemRefs = useRef(new Map());
   const prevRects = useRef(new Map());
 
@@ -126,11 +135,17 @@ function TodoPage({ tasks, now, onToggle, onAdd }) {
             className="task-flip"
             ref={(el) => { if (el) itemRefs.current.set(t.id, el); else itemRefs.current.delete(t.id); }}
           >
-            <TaskCard task={t} now={now} onToggle={onToggle} />
+            <TaskCard task={t} now={now} onToggle={onToggle} onEdit={() => { setEditing(t); setDialogOpen(true); }} />
           </div>
         ))}
       </div>
-      <TodoAddDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onAdd={onAdd} />
+      <TodoAddDialog
+        open={dialogOpen}
+        onClose={() => { setDialogOpen(false); setEditing(null); }}
+        onAdd={onAdd}
+        editTask={editing}
+        onSave={onUpdate}
+      />
     </div>
   );
 }

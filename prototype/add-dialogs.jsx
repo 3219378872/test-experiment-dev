@@ -48,9 +48,17 @@ function nextHour(offset) {
   const d = new Date(Date.now() + 3600e3 * (1 + offset));
   return `${pad2(d.getHours())}:00`;
 }
+const dateISOof = (ts) => { const d = new Date(ts); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
+const hmOf = (ts) => { const d = new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+// "6.05" → 今年的 ISO 日期;容忍区间字符串(如 "6.02 – 6.10" 取首个日期)
+function mdToISO(md) {
+  const m = String(md).match(/(\d+)\.(\d+)/);
+  if (!m) return todayISO();
+  return `${new Date().getFullYear()}-${pad2(+m[1])}-${pad2(+m[2])}`;
+}
 
-// ---- 待办:描述 / 开始日期(到日) / 时间范围(到分钟) ----------------------
-function TodoAddDialog({ open, onClose, onAdd }) {
+// ---- 待办:描述 / 开始日期(到日) / 时间范围(到分钟);传 editTask 则为编辑 ----
+function TodoAddDialog({ open, onClose, onAdd, editTask, onSave }) {
   const { useState, useEffect } = React;
   const [cat, setCat] = useState('work');
   const [text, setText] = useState('');
@@ -59,8 +67,14 @@ function TodoAddDialog({ open, onClose, onAdd }) {
   const [t1, setT1] = useState(nextHour(2));
 
   useEffect(() => {
-    if (open) { setCat('work'); setText(''); setDate(todayISO()); setT0(nextHour(0)); setT1(nextHour(2)); }
-  }, [open]);
+    if (!open) return;
+    if (editTask) {
+      setCat(editTask.cat); setText(editTask.text);
+      setDate(dateISOof(editTask.startAt)); setT0(hmOf(editTask.startAt)); setT1(hmOf(editTask.dueAt));
+    } else {
+      setCat('work'); setText(''); setDate(todayISO()); setT0(nextHour(0)); setT1(nextHour(2));
+    }
+  }, [open, editTask]);
 
   const valid = text.trim().length > 0 && date && t0 && t1;
   const submit = () => {
@@ -68,7 +82,8 @@ function TodoAddDialog({ open, onClose, onAdd }) {
     const startAt = new Date(`${date}T${t0}`).getTime();
     let dueAt = new Date(`${date}T${t1}`).getTime();
     if (dueAt <= startAt) dueAt += 24 * 3600e3;   // 跨夜
-    onAdd({ cat, text: text.trim(), startAt, dueAt });
+    if (editTask) onSave({ id: editTask.id, cat, text: text.trim(), startAt, dueAt });
+    else onAdd({ cat, text: text.trim(), startAt, dueAt });
     onClose();
   };
 
@@ -77,11 +92,11 @@ function TodoAddDialog({ open, onClose, onAdd }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="新建待办"
+      title={editTask ? '编辑待办' : '新建待办'}
       footer={
         <React.Fragment>
           <button type="button" className="btn-ghost" onClick={onClose}>取消</button>
-          <button type="button" className="btn-primary" disabled={!valid} onClick={submit}>添加</button>
+          <button type="button" className="btn-primary" disabled={!valid} onClick={submit}>{editTask ? '保存' : '添加'}</button>
         </React.Fragment>
       }
     >
@@ -108,24 +123,36 @@ function TodoAddDialog({ open, onClose, onAdd }) {
   );
 }
 
-// ---- 记账:描述 / 金额 / 日期,类型对应外部 tag ------------------------------
-function ExpenseAddDialog({ open, onClose, onAdd, tags, initialTag }) {
+// ---- 记账:描述 / 金额 / 日期,类型对应外部 tag;传 editItem 则为编辑 --------
+function ExpenseAddDialog({ open, onClose, onAdd, tags, initialTag, editItem, onSave }) {
   const { useState, useEffect } = React;
   const [tagId, setTagId] = useState(initialTag || tags[0].id);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(todayISO());
+  const [dateTouched, setDateTouched] = useState(false);
 
   useEffect(() => {
-    if (open) { setTagId(initialTag || tags[0].id); setName(''); setAmount(''); setDate(todayISO()); }
-  }, [open, initialTag]);
+    if (!open) return;
+    setDateTouched(false);
+    if (editItem) {
+      setTagId(editItem.tagId); setName(editItem.name);
+      setAmount(String(editItem.amount)); setDate(mdToISO(editItem.date));
+    } else {
+      setTagId(initialTag || tags[0].id); setName(''); setAmount(''); setDate(todayISO());
+    }
+  }, [open, initialTag, editItem]);
 
   const amt = parseFloat(amount);
-  const valid = name.trim().length > 0 && amt > 0 && date;
+  const valid = name.trim().length > 0 && amt > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date);
   const submit = () => {
     if (!valid) return;
     const [, m, d] = date.split('-');
-    onAdd({ tagId, name: name.trim(), amount: Math.round(amt * 100) / 100, date: `${+m}.${pad2(+d)}` });
+    // 编辑时若未改动日期,保留原始字符串(区间日期不被覆盖)
+    const dateStr = editItem && !dateTouched ? editItem.date : `${+m}.${pad2(+d)}`;
+    const payload = { tagId, name: name.trim(), amount: Math.round(amt * 100) / 100, date: dateStr };
+    if (editItem) onSave({ ...payload, fromTag: editItem.tagId, index: editItem.index });
+    else onAdd(payload);
     onClose();
   };
 
@@ -134,11 +161,11 @@ function ExpenseAddDialog({ open, onClose, onAdd, tags, initialTag }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="记一笔"
+      title={editItem ? '编辑开销' : '记一笔'}
       footer={
         <React.Fragment>
           <button type="button" className="btn-ghost" onClick={onClose}>取消</button>
-          <button type="button" className="btn-primary" disabled={!valid} onClick={submit}>添加</button>
+          <button type="button" className="btn-primary" disabled={!valid} onClick={submit}>{editItem ? '保存' : '添加'}</button>
         </React.Fragment>
       }
     >
@@ -154,7 +181,7 @@ function ExpenseAddDialog({ open, onClose, onAdd, tags, initialTag }) {
         </label>
         <label className="field">
           <span>日期</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setDateTouched(true); }} />
         </label>
       </div>
     </Modal>

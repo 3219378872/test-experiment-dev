@@ -19,7 +19,7 @@ function arcPath(cx, cy, r0, r1, a0, a1) {
 // 通用甜甜圈饼图:slices = [{ id, label, value, hue }]
 // 点击放大;hover/触摸 摘出扇形 + 浮动 tooltip
 function DonutChart({ slices, centerTitle, centerValue }) {
-  const { useState, useRef } = React;
+  const { useState, useRef, useEffect } = React;
   const [zoomed, setZoomed] = useState(false);
   const [hover, setHover] = useState(null);
   const [tip, setTip] = useState(null);
@@ -46,12 +46,28 @@ function DonutChart({ slices, centerTitle, centerValue }) {
     setTip({ x: pt.clientX - rect.left, y: pt.clientY - rect.top });
   };
 
+  // 触控:拦截页面滑动,手指移动时用 elementFromPoint 追踪所在扇区
+  useEffect(() => {
+    const el = wrapRef.current; if (!el) return;
+    const onTouch = (e) => {
+      e.preventDefault();
+      const pt = e.touches[0]; if (!pt) return;
+      const rect = el.getBoundingClientRect();
+      setTip({ x: pt.clientX - rect.left, y: pt.clientY - rect.top });
+      const t = document.elementFromPoint(pt.clientX, pt.clientY);
+      const id = t && t.getAttribute ? t.getAttribute('data-slice-id') : null;
+      if (id) setHover(id);
+    };
+    el.addEventListener('touchstart', onTouch, { passive: false });
+    el.addEventListener('touchmove', onTouch, { passive: false });
+    return () => { el.removeEventListener('touchstart', onTouch); el.removeEventListener('touchmove', onTouch); };
+  }, []);
+
   return (
     <div
       ref={wrapRef}
       className={'donut-wrap' + (zoomed ? ' is-zoomed' : '')}
       onMouseMove={onMove}
-      onTouchMove={onMove}
       onMouseLeave={() => { setHover(null); setTip(null); }}
     >
       <svg
@@ -67,12 +83,12 @@ function DonutChart({ slices, centerTitle, centerValue }) {
           return (
             <path
               key={s.id}
+              data-slice-id={s.id}
               d={arcPath(CX, CY, R0, R1, s.a0, Math.max(s.a1, s.a0 + 0.5))}
               fill={isH ? sliceFillHover(s.hue) : sliceFill(s.hue)}
               className="donut-slice"
               style={{ transform: `translate(${dx}px, ${dy}px)` }}
               onMouseEnter={() => setHover(s.id)}
-              onTouchStart={(e) => { setHover(s.id); onMove(e); }}
             ></path>
           );
         })}
@@ -129,12 +145,30 @@ function ExpensePage() {
   const [tags, setTags] = useState(EXPENSE_TAGS);
   const [openTag, setOpenTag] = useState(null);   // tag id 或 null
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState(null);   // { tagId, index } 或 null
 
   const addItem = ({ tagId, name, amount, date }) =>
     setTags((ts) => ts.map((t) => (t.id === tagId ? { ...t, items: [...t.items, { name, amount, date }] } : t)));
 
+  // 编辑一笔:同 tag 原位替换;换 tag 则从原处移除并追加到新 tag
+  const updateItem = ({ fromTag, index, tagId, name, amount, date }) =>
+    setTags((ts) => {
+      if (fromTag === tagId) {
+        return ts.map((t) => (t.id === tagId ? { ...t, items: t.items.map((it, i) => (i === index ? { name, amount, date } : it)) } : t));
+      }
+      return ts.map((t) => {
+        if (t.id === fromTag) return { ...t, items: t.items.filter((_, i) => i !== index) };
+        if (t.id === tagId) return { ...t, items: [...t.items, { name, amount, date }] };
+        return t;
+      });
+    });
+
   const grandTotal = tags.reduce((s, t) => s + tagTotal(t), 0);
   const tag = openTag ? tags.find((t) => t.id === openTag) : null;
+  const editTag = editing ? tags.find((t) => t.id === editing.tagId) : null;
+  const editItem = editTag && editTag.items[editing.index]
+    ? { ...editTag.items[editing.index], tagId: editing.tagId, index: editing.index }
+    : null;
 
   if (!tag) {
     // ---- 总览:大饼 + tag 卡片 ----
@@ -208,10 +242,12 @@ function ExpensePage() {
             amount={it.amount}
             pct={total > 0 ? it.amount / total : 0}
             depth={1}
+            onClick={() => setEditing({ tagId: tag.id, index: i })}
           />
         ))}
       </div>
       <ExpenseAddDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onAdd={addItem} tags={tags} initialTag={tag.id} />
+      <ExpenseAddDialog open={!!editItem} onClose={() => setEditing(null)} onSave={updateItem} editItem={editItem} tags={tags} initialTag={tag.id} />
     </div>
   );
 }
