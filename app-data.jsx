@@ -108,6 +108,118 @@ const EXPENSE_TAGS = [
   },
 ];
 
+// ---- 健康数据 --------------------------------------------------------------
+const DEFAULT_PROFILE = { gender: 'male', age: 28, height: 175, weight: 68 };
+
+const HEALTH_METRICS = {
+  weight: { label: '体重', glyph: '重', hue: 200, unit: 'kg' },
+  bp:     { label: '血压', glyph: '压', hue: 10,  unit: 'mmHg' },
+};
+
+// 根据资料计算理想区间(体重按 BMI 18.5–23.9;血压按年龄分档)
+function idealRange(metric, profile) {
+  if (metric === 'weight') {
+    const h = profile.height / 100;
+    return { lo: +(18.5 * h * h).toFixed(1), hi: +(23.9 * h * h).toFixed(1) };
+  }
+  // bp = 收缩压
+  const hi = profile.age < 45 ? 120 : profile.age < 60 ? 130 : 140;
+  return { lo: 90, hi };
+}
+function bpDiaRange(profile) {
+  const hi = profile.age < 45 ? 80 : profile.age < 60 ? 85 : 90;
+  return { lo: 60, hi };
+}
+
+// 三态:bad = 超出区间;warn = 距边界不足 warnFrac(默认 20%)区间宽度;good = 其余
+function rangeStatus(v, r, warnFrac = 0.2) {
+  if (v < r.lo || v > r.hi) return 'bad';
+  const m = (r.hi - r.lo) * warnFrac;
+  if (v < r.lo + m || v > r.hi - m) return 'warn';
+  return 'good';
+}
+function statusLabel(v, r, warnFrac = 0.2) {
+  const st = rangeStatus(v, r, warnFrac);
+  if (st === 'bad') return v > r.hi ? '偏高' : '偏低';
+  if (st === 'warn') return v > (r.lo + r.hi) / 2 ? '接近上限' : '接近下限';
+  return '理想';
+}
+const STATUS_RANK = { good: 0, warn: 1, bad: 2 };
+const STATUS_HUE = { good: 152, warn: 85, bad: 25 };
+const statusDot  = (st) => `oklch(${st === 'warn' ? 0.78 : st === 'good' ? 0.68 : 0.6} ${st === 'warn' ? 0.14 : 0.16} ${STATUS_HUE[st]})`;
+const statusInk  = (st) => `oklch(0.45 0.11 ${STATUS_HUE[st]})`;
+const statusSoft = (st) => `oklch(0.94 0.05 ${STATUS_HUE[st]})`;
+
+// 记录整体状态:血压取收缩/舒张中较差者
+function recStatus(rec, profile, warnFrac = 0.2) {
+  if (rec.metric === 'weight') return rangeStatus(rec.value, idealRange('weight', profile), warnFrac);
+  const s1 = rangeStatus(rec.value, idealRange('bp', profile), warnFrac);
+  const s2 = rangeStatus(rec.dia, bpDiaRange(profile), warnFrac);
+  return STATUS_RANK[s2] > STATUS_RANK[s1] ? s2 : s1;
+}
+function recStatusText(rec, profile, warnFrac = 0.2) {
+  if (rec.metric === 'weight') return statusLabel(rec.value, idealRange('weight', profile), warnFrac);
+  const sr = idealRange('bp', profile), dr = bpDiaRange(profile);
+  const s1 = rangeStatus(rec.value, sr, warnFrac), s2 = rangeStatus(rec.dia, dr, warnFrac);
+  if (s1 === 'good' && s2 === 'good') return '理想';
+  return STATUS_RANK[s2] > STATUS_RANK[s1]
+    ? '舒张压' + statusLabel(rec.dia, dr, warnFrac)
+    : '收缩压' + statusLabel(rec.value, sr, warnFrac);
+}
+
+// 生成近 30 天演示测量记录(确定性伪随机,保证演示稳定)
+const __dayAnchor = new Date(NOW0); __dayAnchor.setHours(0, 0, 0, 0);
+const DAY0 = __dayAnchor.getTime();
+
+function genHealthRecords() {
+  let seed = 7;
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const recs = [];
+  const days = 30;
+  for (let d = days; d >= 0; d--) {
+    const day0 = DAY0 - d * DAY;
+    if (rnd() > 0.15) {
+      const n = rnd() > 0.75 ? 2 : 1;
+      for (let k = 0; k < n; k++) {
+        const v = 68.4 + Math.sin((days - d) / 5) * 3.4 + (rnd() - 0.5) * 2;
+        const ts = day0 + (7 + k * 12 + rnd() * 2) * HOUR;
+        if (ts > NOW0) continue;
+        recs.push({ id: 'w' + d + '-' + k, metric: 'weight', ts, value: +v.toFixed(1) });
+      }
+    }
+    if (rnd() > 0.2) {
+      const n = rnd() > 0.7 ? 2 : 1;
+      for (let k = 0; k < n; k++) {
+        const sys = Math.round(112 + Math.sin((days - d) / 4 + 2) * 11 + (rnd() - 0.5) * 8);
+        const dia = Math.round(sys * 0.63 + (rnd() - 0.5) * 7);
+        const ts = day0 + (8 + k * 11 + rnd() * 2) * HOUR;
+        if (ts > NOW0) continue;
+        recs.push({ id: 'b' + d + '-' + k, metric: 'bp', ts, value: sys, dia });
+      }
+    }
+  }
+  return recs.sort((a, b) => b.ts - a.ts);
+}
+
+// 按天聚合为日均值节点(升序)
+function dailyNodes(records, metric) {
+  const byDay = new Map();
+  records.forEach((r) => {
+    if (r.metric !== metric) return;
+    const d = new Date(r.ts); d.setHours(0, 0, 0, 0);
+    const k = d.getTime();
+    if (!byDay.has(k)) byDay.set(k, []);
+    byDay.get(k).push(r);
+  });
+  const avg = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length;
+  return [...byDay.entries()].sort((a, b) => a[0] - b[0]).map(([day, rs]) => ({
+    day,
+    value: metric === 'weight' ? +avg(rs.map((r) => r.value)).toFixed(1) : Math.round(avg(rs.map((r) => r.value))),
+    dia: metric === 'bp' ? Math.round(avg(rs.map((r) => r.dia))) : null,
+    count: rs.length,
+  }));
+}
+
 const tagTotal = (tag) => tag.items.reduce((s, it) => s + it.amount, 0);
 const fmtYuan = (n) => '¥' + n.toLocaleString('zh-CN');
 
@@ -124,4 +236,8 @@ Object.assign(window, {
   taskStatus, taskRemainRatio, taskTimeNote, fmtDuration,
   EXPENSE_TAGS, tagTotal, fmtYuan,
   softBg, softBg2, inkOn, sliceFill, sliceFillHover,
+  DEFAULT_PROFILE, HEALTH_METRICS, DAY0,
+  idealRange, bpDiaRange, rangeStatus, statusLabel,
+  STATUS_RANK, STATUS_HUE, statusDot, statusInk, statusSoft,
+  recStatus, recStatusText, genHealthRecords, dailyNodes,
 });

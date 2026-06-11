@@ -5,7 +5,8 @@ const ACCENT_HUE = { '#e8a04c': 70, '#e08560': 35, '#7fb892': 150, '#9a8fd4': 28
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accent": "#e8a04c",
   "radius": 18,
-  "density": "comfy"
+  "density": "comfy",
+  "warnPct": 20
 }/*EDITMODE-END*/;
 
 function AppShell() {
@@ -34,10 +35,12 @@ function AppShell() {
       style={{ '--accent-hue': ACCENT_HUE[tweaks.accent] || 70, '--radius': tweaks.radius + 'px' }}
     >
       <div className="phone">
-        <main className="screen" data-screen-label={tab === 'todo' ? '待办页' : '支出页'}>
+        <main className="screen" data-screen-label={tab === 'todo' ? '待办页' : tab === 'expense' ? '支出页' : '健康页'}>
           {tab === 'todo'
             ? <TodoPage tasks={tasks} now={now} onToggle={toggleTask} onAdd={addTask} />
-            : <ExpensePage />}
+            : tab === 'expense'
+              ? <ExpensePage />
+              : <HealthPage warnFrac={tweaks.warnPct / 100} />}
         </main>
         <nav className="tabbar">
           <button className={'tab' + (tab === 'todo' ? ' is-active' : '')} onClick={() => setTab('todo')}>
@@ -54,6 +57,12 @@ function AppShell() {
             </svg>
             <span>支出</span>
           </button>
+          <button className={'tab' + (tab === 'health' ? ' is-active' : '')} onClick={() => setTab('health')}>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            <span>健康</span>
+          </button>
         </nav>
       </div>
 
@@ -62,6 +71,8 @@ function AppShell() {
         <TweakColor label="点缀色" value={tweaks.accent} options={ACCENT_OPTIONS} onChange={(v) => setTweak('accent', v)} />
         <TweakSlider label="卡片圆角" min={8} max={28} step={1} unit="px" value={tweaks.radius} onChange={(v) => setTweak('radius', v)} />
         <TweakRadio label="密度" value={tweaks.density} options={[{ value: 'comfy', label: '舒适' }, { value: 'compact', label: '紧凑' }]} onChange={(v) => setTweak('density', v)} />
+        <TweakSection label="健康" />
+        <TweakSlider label="黄色预警阈值" min={5} max={40} step={5} unit="%" value={tweaks.warnPct} onChange={(v) => setTweak('warnPct', v)} />
       </TweaksPanel>
     </div>
   );
