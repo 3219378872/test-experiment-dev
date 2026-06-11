@@ -46,17 +46,22 @@ function HealthChart({ nodes, range, metricId, setMetricId, warnFrac }) {
     setHover(best);
   };
 
-  // 触控:阻止页面滚动,手指滑动时移动聚焦节点(需 passive:false,故用原生监听)
+  // 触控:仅拦截"滑动"(touchmove preventDefault)阻止页面滚动并移动聚焦节点;
+  // 轻点不阻止默认,保留 click 等手势
   useEffect(() => {
     const el = svgRef.current; if (!el) return;
-    const onTouch = (e) => {
+    const onStart = (e) => {
+      const pt = e.touches[0];
+      if (pt) scrubRef.current(pt.clientX);
+    };
+    const onMove = (e) => {
       e.preventDefault();
       const pt = e.touches[0];
       if (pt) scrubRef.current(pt.clientX);
     };
-    el.addEventListener('touchstart', onTouch, { passive: false });
-    el.addEventListener('touchmove', onTouch, { passive: false });
-    return () => { el.removeEventListener('touchstart', onTouch); el.removeEventListener('touchmove', onTouch); };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchmove', onMove); };
   }, []);
 
   const prev = hover != null && hover > 0 ? nodes[hover - 1] : null;

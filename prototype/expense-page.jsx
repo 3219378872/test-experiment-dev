@@ -46,11 +46,11 @@ function DonutChart({ slices, centerTitle, centerValue }) {
     setTip({ x: pt.clientX - rect.left, y: pt.clientY - rect.top });
   };
 
-  // 触控:拦截页面滑动,手指移动时用 elementFromPoint 追踪所在扇区
+  // 触控:仅拦截"滑动"(touchmove preventDefault),不拦截轻点,
+  // 这样点击放大/收回的 click 仍能正常触发;滑动时用 elementFromPoint 追踪扇区
   useEffect(() => {
     const el = wrapRef.current; if (!el) return;
-    const onTouch = (e) => {
-      e.preventDefault();
+    const track = (e) => {
       const pt = e.touches[0]; if (!pt) return;
       const rect = el.getBoundingClientRect();
       setTip({ x: pt.clientX - rect.left, y: pt.clientY - rect.top });
@@ -58,9 +58,11 @@ function DonutChart({ slices, centerTitle, centerValue }) {
       const id = t && t.getAttribute ? t.getAttribute('data-slice-id') : null;
       if (id) setHover(id);
     };
-    el.addEventListener('touchstart', onTouch, { passive: false });
-    el.addEventListener('touchmove', onTouch, { passive: false });
-    return () => { el.removeEventListener('touchstart', onTouch); el.removeEventListener('touchmove', onTouch); };
+    const onStart = (e) => { track(e); };                       // 轻点:不阻止默认,保留 click
+    const onMove = (e) => { e.preventDefault(); track(e); };    // 滑动:拦截页面滚动
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchmove', onMove); };
   }, []);
 
   return (
