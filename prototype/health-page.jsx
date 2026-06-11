@@ -59,9 +59,17 @@ function HealthChart({ nodes, range, metricId, setMetricId, warnFrac }) {
       const pt = e.touches[0];
       if (pt) scrubRef.current(pt.clientX);
     };
+    const onEnd = () => setHover(null);   // 离手:收起数据框,恢复原始状态
     el.addEventListener('touchstart', onStart, { passive: true });
     el.addEventListener('touchmove', onMove, { passive: false });
-    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchmove', onMove); };
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
   }, []);
 
   const prev = hover != null && hover > 0 ? nodes[hover - 1] : null;

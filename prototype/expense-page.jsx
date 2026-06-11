@@ -60,9 +60,17 @@ function DonutChart({ slices, centerTitle, centerValue }) {
     };
     const onStart = (e) => { track(e); };                       // 轻点:不阻止默认,保留 click
     const onMove = (e) => { e.preventDefault(); track(e); };    // 滑动:拦截页面滚动
+    const onEnd = () => { setHover(null); setTip(null); };      // 离手:恢复无详情的原始状态
     el.addEventListener('touchstart', onStart, { passive: true });
     el.addEventListener('touchmove', onMove, { passive: false });
-    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchmove', onMove); };
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
   }, []);
 
   return (
