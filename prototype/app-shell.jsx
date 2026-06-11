@@ -32,6 +32,9 @@ function AppShell() {
   const addTask = ({ cat, text, startAt, dueAt }) =>
     setTasks((ts) => [...ts, { id: 't' + Date.now(), cat, text, createdAt: Date.now(), startAt, dueAt, done: false }]);
 
+  const deleteTasks = (ids) =>
+    setTasks((ts) => ts.filter((t) => !ids.includes(t.id)));
+
   return (
     <div
       className={'app density-' + tweaks.density}
@@ -40,7 +43,7 @@ function AppShell() {
       <div className="phone">
         <main className="screen" data-screen-label={tab === 'todo' ? '待办页' : tab === 'expense' ? '支出页' : '健康页'}>
           {tab === 'todo'
-            ? <TodoPage tasks={tasks} now={now} onToggle={toggleTask} onAdd={addTask} onUpdate={updateTask} />
+            ? <TodoPage tasks={tasks} now={now} onToggle={toggleTask} onAdd={addTask} onUpdate={updateTask} onDelete={deleteTasks} />
             : tab === 'expense'
               ? <ExpensePage />
               : <HealthPage warnFrac={tweaks.warnPct / 100} />}

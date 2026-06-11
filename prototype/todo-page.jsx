@@ -27,22 +27,25 @@ function TaskCheck({ checked, ink, onToggle }) {
   );
 }
 
-function TaskCard({ task, now, onToggle, onEdit }) {
+function TaskCard({ task, now, onToggle, onEdit, batch, shakeDelay }) {
+  const lp = useLongPress(() => batch.enter(task.id), batch.active);
   const st = taskStatus(task, now);
   const sty = TODO_STATUS_STYLE[st];
   const cat = TASK_CATS[task.cat];
   const ratio = taskRemainRatio(task, now);
   const showBar = (st === 'upcoming' || st === 'active');
+  const inBatch = batch.active;
 
   return (
     <div
-      className={'task-card status-' + st}
-      style={{ background: sty.bg }}
+      className={'task-card status-' + st + (inBatch ? ' is-shaking' : '')}
+      style={{ background: sty.bg, animationDelay: inBatch ? shakeDelay : undefined }}
       role="button"
       tabIndex={0}
-      aria-label={'编辑待办:' + task.text}
-      onClick={onEdit}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(); } }}
+      aria-label={(inBatch ? '待办:' : '编辑待办:') + task.text}
+      onClick={inBatch ? undefined : onEdit}
+      onKeyDown={(e) => { if (!inBatch && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onEdit(); } }}
+      {...lp}
     >
       {showBar && (
         <div className="task-bar-track" style={{ background: sty.barTrack }}>
@@ -59,16 +62,22 @@ function TaskCard({ task, now, onToggle, onEdit }) {
             <span>{taskTimeNote(task, now)}</span>
           </div>
         </div>
-        <TaskCheck checked={st === 'done'} ink={sty.ink} onToggle={() => onToggle(task.id)} />
+        {inBatch ? (
+          <BatchXButton selected={batch.selected.has(task.id)} onToggle={() => batch.toggle(task.id)} />
+        ) : (
+          <TaskCheck checked={st === 'done'} ink={sty.ink} onToggle={() => onToggle(task.id)} />
+        )}
       </div>
     </div>
   );
 }
 
-function TodoPage({ tasks, now, onToggle, onAdd, onUpdate }) {
+function TodoPage({ tasks, now, onToggle, onAdd, onUpdate, onDelete }) {
   const { useState, useLayoutEffect } = React;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);   // 被编辑的 task
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const batch = useBatchDelete();
   const itemRefs = useRef(new Map());
   const prevRects = useRef(new Map());
 
@@ -121,7 +130,11 @@ function TodoPage({ tasks, now, onToggle, onAdd, onUpdate }) {
           <h1>今日待办</h1>
           <p className="page-sub">{remaining > 0 ? `还有 ${remaining} 件事要做` : '全部完成,休息一下吧'}</p>
         </div>
-        <AddButton label="新建待办" onClick={() => setDialogOpen(true)} />
+        {batch.active ? (
+          <TrashButton count={batch.selected.size} onClick={() => setConfirmOpen(true)} />
+        ) : (
+          <AddButton label="新建待办" onClick={() => setDialogOpen(true)} />
+        )}
       </header>
       <div className="legend">
         <span className="legend-item"><i style={{ background: TODO_STATUS_STYLE.upcoming.bar }}></i>未开始</span>
@@ -129,13 +142,20 @@ function TodoPage({ tasks, now, onToggle, onAdd, onUpdate }) {
         <span className="legend-item"><i style={{ background: 'oklch(0.62 0.16 25)' }}></i>已过期</span>
       </div>
       <div className="task-list">
-        {sorted.map((t) => (
+        {sorted.map((t, i) => (
           <div
             key={t.id}
             className="task-flip"
             ref={(el) => { if (el) itemRefs.current.set(t.id, el); else itemRefs.current.delete(t.id); }}
           >
-            <TaskCard task={t} now={now} onToggle={onToggle} onEdit={() => { setEditing(t); setDialogOpen(true); }} />
+            <TaskCard
+              task={t}
+              now={now}
+              onToggle={onToggle}
+              onEdit={() => { setEditing(t); setDialogOpen(true); }}
+              batch={batch}
+              shakeDelay={-(i % 3) * 0.1 + 's'}
+            />
           </div>
         ))}
       </div>
@@ -145,6 +165,13 @@ function TodoPage({ tasks, now, onToggle, onAdd, onUpdate }) {
         onAdd={onAdd}
         editTask={editing}
         onSave={onUpdate}
+      />
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        count={batch.selected.size}
+        noun="条待办"
+        onNo={() => setConfirmOpen(false)}
+        onYes={() => { onDelete([...batch.selected]); setConfirmOpen(false); batch.exit(); }}
       />
     </div>
   );

@@ -182,7 +182,9 @@ function Pager({ page, pages, onPage }) {
 }
 
 // 单条测量记录:类型 + 数值 + 红黄绿状态;点击展开时间与具体数据
-function RecordCard({ rec, profile, warnFrac, open, onToggle }) {
+function RecordCard({ rec, profile, warnFrac, open, onToggle, batch, shakeDelay }) {
+  const inBatch = !!(batch && batch.active);
+  const lp = useLongPress(batch ? () => batch.enter(rec.id) : null, inBatch);
   const meta = HEALTH_METRICS[rec.metric];
   const st = recStatus(rec, profile, warnFrac);
   const stText = recStatusText(rec, profile, warnFrac);
@@ -190,10 +192,15 @@ function RecordCard({ rec, profile, warnFrac, open, onToggle }) {
   const valueText = isW ? `${rec.value.toFixed(1)} kg` : `${rec.value} / ${rec.dia} mmHg`;
   const range = idealRange(rec.metric, profile);
   const bmi = isW ? rec.value / Math.pow(profile.height / 100, 2) : null;
+  const Head = inBatch ? 'div' : 'button';
 
   return (
-    <div className={'rec-card' + (open ? ' is-open' : '')}>
-      <button type="button" className="rec-head" aria-expanded={open} onClick={onToggle}>
+    <div
+      className={'rec-card' + (open && !inBatch ? ' is-open' : '') + (inBatch ? ' is-shaking' : '')}
+      style={{ animationDelay: inBatch ? shakeDelay : undefined }}
+      {...lp}
+    >
+      <Head type={inBatch ? undefined : 'button'} className="rec-head" aria-expanded={inBatch ? undefined : open} onClick={inBatch ? undefined : onToggle}>
         <div className="rec-chip" style={{ background: softBg(meta.hue), color: inkOn(meta.hue) }}>{meta.glyph}</div>
         <div className="rec-main">
           <div className="rec-title">{meta.label}<small>{valueText}</small></div>
@@ -202,11 +209,15 @@ function RecordCard({ rec, profile, warnFrac, open, onToggle }) {
         <span className="rec-pill" style={{ background: statusSoft(st), color: statusInk(st) }}>
           <i style={{ background: statusDot(st) }}></i>{stText}
         </span>
-        <svg className="rec-caret" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 5 16 12 9 19"></polyline>
-        </svg>
-      </button>
-      {open && (
+        {inBatch ? (
+          <BatchXButton selected={batch.selected.has(rec.id)} onToggle={() => batch.toggle(rec.id)} />
+        ) : (
+          <svg className="rec-caret" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 5 16 12 9 19"></polyline>
+          </svg>
+        )}
+      </Head>
+      {open && !inBatch && (
         <dl className="rec-detail">
           <dt>测量时间</dt><dd>{fmtDateTime(rec.ts)}</dd>
           {isW ? (
@@ -247,6 +258,8 @@ function HealthPage({ warnFrac }) {
   const [gearOpen, setGearOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [openRec, setOpenRec] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const batch = useBatchDelete();
 
   const range = idealRange(metricId, profile);
   const nodes = useMemo(
@@ -259,6 +272,9 @@ function HealthPage({ warnFrac }) {
     setMetricId(rec.metric);
     setPage(0);
   };
+
+  const deleteRecords = (ids) =>
+    setRecords((rs) => rs.filter((r) => !ids.includes(r.id)));
 
   const pages = Math.max(1, Math.ceil(records.length / REC_PAGE_SIZE));
   const safePage = Math.min(page, pages - 1);
@@ -273,7 +289,11 @@ function HealthPage({ warnFrac }) {
         </div>
         <div className="head-actions">
           <GearButton onClick={() => setGearOpen(true)} />
-          <AddButton label="新增数据" onClick={() => setAddOpen(true)} />
+          {batch.active ? (
+            <TrashButton count={batch.selected.size} onClick={() => setConfirmOpen(true)} />
+          ) : (
+            <AddButton label="新增数据" onClick={() => setAddOpen(true)} />
+          )}
         </div>
       </header>
 
@@ -284,7 +304,7 @@ function HealthPage({ warnFrac }) {
         <span className="rec-count">共 {records.length} 条</span>
       </div>
       <div className="rec-list">
-        {pageRecs.map((rec) => (
+        {pageRecs.map((rec, i) => (
           <RecordCard
             key={rec.id}
             rec={rec}
@@ -292,6 +312,8 @@ function HealthPage({ warnFrac }) {
             warnFrac={warnFrac}
             open={openRec === rec.id}
             onToggle={() => setOpenRec((o) => (o === rec.id ? null : rec.id))}
+            batch={batch}
+            shakeDelay={-(i % 3) * 0.1 + 's'}
           />
         ))}
       </div>
@@ -299,6 +321,13 @@ function HealthPage({ warnFrac }) {
 
       <ProfileDialog open={gearOpen} onClose={() => setGearOpen(false)} profile={profile} onSave={setProfile} />
       <HealthAddDialog open={addOpen} onClose={() => setAddOpen(false)} onAdd={addRecord} />
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        count={batch.selected.size}
+        noun="条记录"
+        onNo={() => setConfirmOpen(false)}
+        onYes={() => { deleteRecords([...batch.selected]); setConfirmOpen(false); batch.exit(); }}
+      />
     </div>
   );
 }

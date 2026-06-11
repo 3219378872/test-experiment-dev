@@ -126,7 +126,7 @@ function TodoAddDialog({ open, onClose, onAdd, editTask, onSave }) {
 // ---- 记账:描述 / 金额 / 日期,类型对应外部 tag;传 editItem 则为编辑 --------
 function ExpenseAddDialog({ open, onClose, onAdd, tags, initialTag, editItem, onSave }) {
   const { useState, useEffect } = React;
-  const [tagId, setTagId] = useState(initialTag || tags[0].id);
+  const [tagId, setTagId] = useState(initialTag || (tags[0] && tags[0].id));
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(todayISO());
@@ -139,9 +139,11 @@ function ExpenseAddDialog({ open, onClose, onAdd, tags, initialTag, editItem, on
       setTagId(editItem.tagId); setName(editItem.name);
       setAmount(String(editItem.amount)); setDate(mdToISO(editItem.date));
     } else {
-      setTagId(initialTag || tags[0].id); setName(''); setAmount(''); setDate(todayISO());
+      setTagId(initialTag || (tags[0] && tags[0].id)); setName(''); setAmount(''); setDate(todayISO());
     }
   }, [open, initialTag, editItem]);
+
+  if (!tags.length) return null;
 
   const amt = parseFloat(amount);
   const valid = name.trim().length > 0 && amt > 0 && /^\d{4}-\d{2}-\d{2}$/.test(date);

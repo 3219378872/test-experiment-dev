@@ -122,15 +122,18 @@ function DonutChart({ slices, centerTitle, centerValue }) {
 }
 
 // 支出卡片(tag 级与明细级共用,depth 控制配色微调)
-function ExpenseCard({ glyph, hue, title, note, amount, pct, depth, onClick }) {
+function ExpenseCard({ glyph, hue, title, note, amount, pct, depth, onClick, batch, batchId, shakeDelay }) {
+  const inBatch = !!(batch && batch.active);
+  const lp = useLongPress(batch ? () => batch.enter(batchId) : null, inBatch);
   const bg = depth === 0 ? softBg(hue) : `oklch(0.97 0.018 ${hue})`;
   const chipBg = depth === 0 ? softBg2(hue) : softBg(hue);
-  const Tag = onClick ? 'button' : 'div';
+  const Tag = onClick && !inBatch ? 'button' : 'div';
   return (
     <Tag
-      className={'expense-card' + (onClick ? ' is-clickable' : '')}
-      style={{ background: bg, '--card-hue': hue }}
-      onClick={onClick}
+      className={'expense-card' + (onClick && !inBatch ? ' is-clickable' : '') + (inBatch ? ' is-shaking' : '')}
+      style={{ background: bg, '--card-hue': hue, animationDelay: inBatch ? shakeDelay : undefined }}
+      onClick={inBatch ? undefined : onClick}
+      {...lp}
     >
       <div className="expense-chip" style={{ background: chipBg, color: inkOn(hue) }}>{glyph}</div>
       <div className="expense-text">
@@ -141,7 +144,9 @@ function ExpenseCard({ glyph, hue, title, note, amount, pct, depth, onClick }) {
         <div className="expense-amt">{fmtYuan(amount)}</div>
         <div className="expense-pct" style={{ color: inkOn(hue) }}>{(pct * 100).toFixed(1)}%</div>
       </div>
-      {onClick && (
+      {inBatch ? (
+        <BatchXButton selected={batch.selected.has(batchId)} onToggle={() => batch.toggle(batchId)} />
+      ) : onClick && (
         <svg className="expense-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 5 16 12 9 19"></polyline>
         </svg>
@@ -156,6 +161,10 @@ function ExpensePage() {
   const [openTag, setOpenTag] = useState(null);   // tag id 或 null
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);   // { tagId, index } 或 null
+  const batchTags = useBatchDelete();             // 总览:分类卡批量删除
+  const batchItems = useBatchDelete();            // 明细:单笔批量删除
+  const [confirmTags, setConfirmTags] = useState(false);
+  const [confirmItems, setConfirmItems] = useState(false);
 
   const addItem = ({ tagId, name, amount, date }) =>
     setTags((ts) => ts.map((t) => (t.id === tagId ? { ...t, items: [...t.items, { name, amount, date }] } : t)));
@@ -172,6 +181,12 @@ function ExpensePage() {
         return t;
       });
     });
+
+  const deleteTags = (ids) =>
+    setTags((ts) => ts.filter((t) => !ids.includes(t.id)));
+
+  const deleteItems = (tagId, idxs) =>
+    setTags((ts) => ts.map((t) => (t.id === tagId ? { ...t, items: t.items.filter((_, i) => !idxs.includes(i)) } : t)));
 
   const grandTotal = tags.reduce((s, t) => s + tagTotal(t), 0);
   const tag = openTag ? tags.find((t) => t.id === openTag) : null;
@@ -190,11 +205,15 @@ function ExpensePage() {
             <h1>本月支出</h1>
             <p className="page-sub">6 月 1 日 – 今天</p>
           </div>
-          <AddButton label="记一笔" onClick={() => setDialogOpen(true)} />
+          {batchTags.active ? (
+            <TrashButton count={batchTags.selected.size} onClick={() => setConfirmTags(true)} />
+          ) : tags.length > 0 ? (
+            <AddButton label="记一笔" onClick={() => setDialogOpen(true)} />
+          ) : null}
         </header>
         <DonutChart slices={slices} centerTitle="总支出" centerValue={fmtYuan(grandTotal)} />
         <div className="expense-list">
-          {tags.map((t) => {
+          {tags.map((t, i) => {
             const total = tagTotal(t);
             return (
               <ExpenseCard
@@ -207,11 +226,21 @@ function ExpensePage() {
                 pct={grandTotal > 0 ? total / grandTotal : 0}
                 depth={0}
                 onClick={() => setOpenTag(t.id)}
+                batch={batchTags}
+                batchId={t.id}
+                shakeDelay={-(i % 3) * 0.1 + 's'}
               />
             );
           })}
         </div>
         <ExpenseAddDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onAdd={addItem} tags={tags} initialTag={null} />
+        <ConfirmDeleteDialog
+          open={confirmTags}
+          count={batchTags.selected.size}
+          noun="个分类"
+          onNo={() => setConfirmTags(false)}
+          onYes={() => { deleteTags([...batchTags.selected]); setConfirmTags(false); batchTags.exit(); }}
+        />
       </div>
     );
   }
@@ -228,7 +257,7 @@ function ExpensePage() {
     <div className="page expense-page expense-detail" style={{ '--detail-hue': tag.hue }}>
       <header className="page-head detail-head">
         <div className="detail-left">
-          <button className="back-btn" onClick={() => setOpenTag(null)} aria-label="返回支出总览">
+          <button className="back-btn" onClick={() => { setOpenTag(null); batchItems.exit(); }} aria-label="返回支出总览">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 5 8 12 15 19"></polyline>
             </svg>
@@ -238,7 +267,11 @@ function ExpensePage() {
             <p className="page-sub">占总支出 {((total / grandTotal) * 100).toFixed(1)}% · 共 {tag.items.length} 笔</p>
           </div>
         </div>
-        <AddButton label={'记一笔' + tag.label} onClick={() => setDialogOpen(true)} />
+        {batchItems.active ? (
+          <TrashButton count={batchItems.selected.size} onClick={() => setConfirmItems(true)} />
+        ) : (
+          <AddButton label={'记一笔' + tag.label} onClick={() => setDialogOpen(true)} />
+        )}
       </header>
       <DonutChart slices={slices} centerTitle={tag.label} centerValue={fmtYuan(total)} />
       <div className="expense-list">
@@ -253,11 +286,21 @@ function ExpensePage() {
             pct={total > 0 ? it.amount / total : 0}
             depth={1}
             onClick={() => setEditing({ tagId: tag.id, index: i })}
+            batch={batchItems}
+            batchId={i}
+            shakeDelay={-(i % 3) * 0.1 + 's'}
           />
         ))}
       </div>
       <ExpenseAddDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onAdd={addItem} tags={tags} initialTag={tag.id} />
       <ExpenseAddDialog open={!!editItem} onClose={() => setEditing(null)} onSave={updateItem} editItem={editItem} tags={tags} initialTag={tag.id} />
+      <ConfirmDeleteDialog
+        open={confirmItems}
+        count={batchItems.selected.size}
+        noun="笔开销"
+        onNo={() => setConfirmItems(false)}
+        onYes={() => { deleteItems(tag.id, [...batchItems.selected]); setConfirmItems(false); batchItems.exit(); }}
+      />
     </div>
   );
 }
