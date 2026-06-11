@@ -1,0 +1,37 @@
+name: Deploy Prototype to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'prototype/**'
+      - '.github/workflows/deploy-prototype.yml'
+  workflow_dispatch:
+
+# 设置 GITHUB_TOKEN 权限以部署到 GitHub Pages
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare deploy directory
+        run: |
+          mkdir -p deploy
+          cp prototype/* deploy/
+          # 重命名为 index.html 以支持 GitHub Pages 默认入口
+          mv "deploy/Todo + Expense App.html" deploy/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deploy
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "deploy: 部署高保真原型 ${{ github.sha }}"
