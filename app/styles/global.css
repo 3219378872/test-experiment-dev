@@ -27,6 +27,8 @@
 
 * {
   box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -583,6 +585,7 @@ h1 {
 }
 
 .task-check {
+  --task-check-center-x: 50%;
   position: relative;
   width: 34px;
   height: 34px;
@@ -607,14 +610,15 @@ h1 {
   padding: 0;
   justify-items: end;
   border-radius: 0;
-  transform-origin: calc(100% - 33px) 50%;
+  transform-origin: var(--task-check-center-x) 50%;
+  --task-check-center-x: calc(100% - 33px);
 }
 
 .task-check::before {
   content: "";
   position: absolute;
   top: 50%;
-  left: 50%;
+  left: var(--task-check-center-x);
   width: 26px;
   height: 26px;
   border: 2px solid var(--check-ink);
@@ -624,18 +628,15 @@ h1 {
 }
 
 .task-card:not(.is-shaking) .task-check::before {
-  right: 20px;
-  left: auto;
-  transform: translateY(-50%);
-}
-
-.task-card:not(.is-shaking) .task-check svg {
-  margin-right: 25px;
+  right: auto;
 }
 
 .task-check svg {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: var(--task-check-center-x);
   z-index: 1;
+  transform: translate(-50%, -50%);
   transition: color 0.15s;
 }
 
