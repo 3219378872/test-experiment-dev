@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 const rootDir = import.meta.dirname;
 
 export default defineConfig({
+  base: './',
   plugins: [react()],
   resolve: {
     alias: {

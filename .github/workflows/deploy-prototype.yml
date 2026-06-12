@@ -1,17 +1,28 @@
-name: Deploy Prototype to GitHub Pages
+name: Deploy App to GitHub Pages
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'prototype/**'
+      - 'app/**'
+      - 'pages/**'
+      - 'features/**'
+      - 'shared/**'
+      - 'index.html'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig.json'
+      - 'vite.config.ts'
       - '.github/workflows/deploy-prototype.yml'
   workflow_dispatch:
 
-# 设置 GITHUB_TOKEN 权限以部署到 GitHub Pages
 permissions:
   contents: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -20,18 +31,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare deploy directory
-        run: |
-          mkdir -p deploy
-          cp prototype/* deploy/
-          # 重命名为 index.html 以支持 GitHub Pages 默认入口
-          mv "deploy/Todo + Expense App.html" deploy/index.html
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build app
+        run: pnpm build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./deploy
+          publish_dir: ./dist
           publish_branch: gh-pages
           force_orphan: true
-          commit_message: "deploy: 部署高保真原型 ${{ github.sha }}"
+          commit_message: "deploy: 部署当前项目 ${{ github.sha }}"
