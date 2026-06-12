@@ -27,6 +27,7 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -525,6 +526,10 @@ h1 {
   padding: 14px 16px 15px;
 }
 
+.task-card:not(.is-shaking) .task-body {
+  padding-right: calc(33.333% + 16px);
+}
+
 .task-icon {
   width: 42px;
   height: 42px;
@@ -591,13 +596,41 @@ h1 {
   cursor: pointer;
 }
 
+.task-card:not(.is-shaking) .task-check {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 33.333%;
+  height: 100%;
+  padding: 0;
+  justify-items: end;
+  border-radius: 0;
+  transform-origin: calc(100% - 33px) 50%;
+}
+
 .task-check::before {
   content: "";
   position: absolute;
-  inset: 4px;
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
   border: 2px solid var(--check-ink);
   border-radius: 50%;
   background: transparent;
+  transform: translate(-50%, -50%);
+}
+
+.task-card:not(.is-shaking) .task-check::before {
+  right: 20px;
+  left: auto;
+  transform: translateY(-50%);
+}
+
+.task-card:not(.is-shaking) .task-check svg {
+  margin-right: 25px;
 }
 
 .task-check svg {
