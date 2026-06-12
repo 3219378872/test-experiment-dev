@@ -871,7 +871,7 @@ h1 {
 }
 
 .detail-head {
-  align-items: center;
+  align-items: flex-start;
 }
 
 .detail-left {
