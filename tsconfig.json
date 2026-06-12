@@ -7,9 +7,18 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
     "isolatedModules": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "app/*": ["app/*"],
+      "pages/*": ["pages/*"],
+      "features/*": ["features/*"],
+      "shared/*": ["shared/*"]
+    },
+    "types": ["node", "vitest/globals"]
   },
-  "include": ["app", "pages", "features", "shared"],
+  "include": ["app", "pages", "features", "shared", "vite.config.ts"],
   "exclude": ["node_modules", "prototype"]
 }
