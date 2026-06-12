@@ -13,7 +13,7 @@ const srcFiles = [
 ];
 
 export default tseslint.config(
-  { ignores: ['prototype/**', 'node_modules/**'] },
+  { ignores: ['prototype/**', 'node_modules/**', 'dist/**', 'coverage/**', 'playwright-report/**', 'test-results/**'] },
   js.configs.recommended,
   // 类型感知检查：no-floating-promises / no-misused-promises / await-thenable 等
   ...tseslint.configs.recommendedTypeChecked,
