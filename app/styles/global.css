@@ -839,6 +839,322 @@ h1 {
   cursor: pointer;
 }
 
+.head-actions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.hchart-card {
+  margin-bottom: 18px;
+  padding: 14px 12px 8px;
+  border-radius: var(--radius);
+  background: oklch(0.99 0.004 85);
+  box-shadow: 0 1px 2px oklch(0.4 0.02 60 / 5%);
+}
+
+.hchart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 4px 10px;
+}
+
+.hchart-title {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.hchart-title small {
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.metric-switch {
+  display: flex;
+  gap: 6px;
+}
+
+.metric-btn {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--paper-deep);
+  color: var(--ink-faint);
+  box-shadow: 0 1px 2px oklch(0.4 0.02 60 / 5%);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.metric-btn.is-active {
+  background: var(--m-soft);
+  color: var(--m-ink);
+}
+
+.hchart-body {
+  position: relative;
+  touch-action: none;
+}
+
+.hchart-svg {
+  width: 100%;
+  display: block;
+  overflow: visible;
+  cursor: crosshair;
+}
+
+.hchart-grid {
+  stroke: oklch(0.9 0.012 85);
+  stroke-width: 1;
+}
+
+.hchart-axis {
+  fill: var(--ink-faint);
+  font-family: inherit;
+  font-size: 9.5px;
+}
+
+.hchart-band {
+  stroke: oklch(0.7 0.08 var(--accent-hue));
+  stroke-dasharray: 5 5;
+  stroke-width: 1.2;
+}
+
+.hchart-band-label {
+  fill: var(--accent-ink);
+  font-family: inherit;
+  font-size: 9.5px;
+}
+
+.hchart-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.hchart-node {
+  stroke: var(--paper);
+  stroke-width: 2;
+  transition: r 0.15s;
+}
+
+.chart-tip {
+  position: absolute;
+  z-index: 4;
+  min-width: 168px;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid oklch(0.9 0.01 85);
+  border-radius: 12px;
+  background: oklch(0.99 0.005 85 / 94%);
+  box-shadow: 0 6px 24px oklch(0.3 0.02 60 / 14%);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 12px));
+  backdrop-filter: blur(8px);
+}
+
+.chart-tip-date {
+  color: var(--ink-soft);
+  font-size: 11.5px;
+}
+
+.chart-tip-main {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.chart-tip-main small {
+  font-size: 11px;
+}
+
+.chart-tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+}
+
+.chart-tip-row b {
+  color: var(--ink);
+  font-weight: 700;
+  text-align: right;
+}
+
+.hchart-hint {
+  padding-top: 4px;
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.rec-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 18px 0 10px;
+}
+
+.rec-section-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.rec-count {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+}
+
+.rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.rec-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--paper-faint);
+  box-shadow: 0 1px 2px oklch(0.4 0.02 60 / 5%);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.rec-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.rec-chip {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.rec-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.rec-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.rec-title small {
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.rec-note {
+  margin-top: 3px;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.rec-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.rec-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.rec-caret {
+  flex: 0 0 auto;
+  color: var(--ink-faint);
+  transition: transform 0.18s;
+}
+
+.rec-card.is-open .rec-caret {
+  transform: rotate(90deg);
+}
+
+.rec-detail {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  margin: 0;
+  padding: 0 14px 14px 64px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+.rec-detail dt {
+  color: var(--ink-faint);
+}
+
+.rec-detail dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.field-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.seg-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.seg-btn {
+  min-height: 38px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--paper-deep);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.seg-btn.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
 @media (min-width: 480px) and (min-height: 920px) {
   .app {
     padding: 20px;
