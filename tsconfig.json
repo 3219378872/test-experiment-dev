@@ -19,6 +19,6 @@
     },
     "types": ["node", "vitest/globals"]
   },
-  "include": ["app", "pages", "features", "shared", "vite.config.ts"],
+  "include": ["app", "pages", "features", "shared", "vite.config.ts", "playwright.config.ts", "e2e"],
   "exclude": ["node_modules", "prototype"]
 }
