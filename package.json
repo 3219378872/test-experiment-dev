@@ -4,7 +4,11 @@
   "private": true,
   "description": "React 无后端单体项目：todolist / expense check / health track",
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,cjs}": "eslint --fix --no-warn-ignored"
   },
   "devDependencies": {
     "@eslint-react/eslint-plugin": "^5.8.18",
@@ -14,6 +18,8 @@
     "eslint-plugin-boundaries": "^6.0.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.0"
   }
