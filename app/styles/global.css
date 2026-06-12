@@ -149,6 +149,238 @@ h1 {
   border-radius: 7px;
 }
 
+.add-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: oklch(0.99 0.006 85);
+  box-shadow: 0 10px 26px oklch(0.62 0.12 var(--accent-hue) / 26%);
+  cursor: pointer;
+}
+
+.add-btn.is-danger {
+  background: var(--danger);
+  box-shadow: 0 10px 26px oklch(0.58 0.17 25 / 24%);
+}
+
+.del-count {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  min-width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: oklch(0.32 0.018 60 / 28%);
+  backdrop-filter: blur(12px);
+}
+
+.modal-card {
+  width: min(100%, 360px);
+  max-height: min(760px, calc(100vh - 44px));
+  overflow: auto;
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: 0 26px 70px oklch(0.32 0.02 60 / 22%);
+}
+
+.dialog-title {
+  padding: 20px 20px 0;
+  color: var(--ink);
+  font-size: 1.12rem;
+  font-weight: 800;
+}
+
+.dialog-body {
+  display: flex;
+  gap: 18px;
+  padding: 18px 20px 20px;
+}
+
+.dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 20px 20px;
+}
+
+.btn-ghost,
+.btn-primary {
+  min-height: 42px;
+  border: 0;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-ghost {
+  background: var(--paper-deep);
+  color: var(--ink-soft);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: oklch(0.99 0.006 85);
+}
+
+.btn-primary:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background: var(--danger);
+}
+
+.type-picker {
+  width: 86px;
+  flex: 0 0 86px;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 12px;
+}
+
+.type-big {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.type-big-glyph {
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.type-big-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.type-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+}
+
+.type-dot {
+  width: 30px;
+  height: 30px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.type-dot.is-active {
+  border-color: var(--dot-ring);
+}
+
+.batch-x {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--danger);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.batch-x::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid currentColor;
+  border-radius: inherit;
+  opacity: 0.7;
+}
+
+.batch-x.is-selected {
+  color: oklch(0.99 0.005 85);
+}
+
+.batch-x.is-selected::before {
+  border-color: transparent;
+  background: var(--danger);
+  opacity: 1;
+}
+
+.batch-x svg {
+  position: relative;
+  z-index: 1;
+  transform: scale(0);
+  transition: transform 0.2s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+.batch-x.is-selected svg {
+  transform: scale(1);
+}
+
+.confirm-text {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.65;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pager-btn,
+.pager-page {
+  min-width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--paper-deep);
+  color: var(--ink-soft);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pager-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pager-page.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
 @media (min-width: 480px) and (min-height: 920px) {
   .app {
     padding: 20px;
