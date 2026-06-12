@@ -27,7 +27,7 @@ export function ExpenseCard<TId extends string | number>({ glyph, hue, title, no
 
   return (
     <Tag
-      className={`expense-card${onClick && !inBatch ? ' is-clickable' : ''}${inBatch ? ' is-shaking' : ''}`}
+      className={`expense-card${onClick && !inBatch ? ' is-clickable' : ''}${inBatch ? ' is-batch is-shaking' : ''}`}
       style={{ background: bg, '--card-hue': hue, animationDelay: inBatch ? shakeDelay : undefined } as React.CSSProperties}
       onClick={inBatch ? undefined : onClick}
       {...longPressHandlers}

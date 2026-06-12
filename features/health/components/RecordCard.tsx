@@ -27,7 +27,7 @@ export function RecordCard({ record, profile, open, batch, warnFrac = 0.2, shake
   const bmi = isWeight ? record.value / (profile.height / 100) ** 2 : null;
 
   return (
-    <div className={`rec-card${open && !inBatch ? ' is-open' : ''}${inBatch ? ' is-shaking' : ''}`} style={{ animationDelay: inBatch ? shakeDelay : undefined }} {...longPressHandlers}>
+    <div className={`rec-card${open && !inBatch ? ' is-open' : ''}${inBatch ? ' is-batch is-shaking' : ''}`} style={{ animationDelay: inBatch ? shakeDelay : undefined }} {...longPressHandlers}>
       <button type="button" className="rec-head" aria-expanded={inBatch ? undefined : open} onClick={inBatch ? undefined : onToggle}>
         <div className="rec-chip" style={{ background: softBg(meta.hue), color: inkOn(meta.hue) }}>
           {meta.glyph}

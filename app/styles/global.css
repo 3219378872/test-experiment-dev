@@ -259,11 +259,13 @@ h1 {
   height: 76px;
   display: grid;
   place-items: center;
+  align-content: center;
   border-radius: 50%;
 }
 
 .type-big-glyph {
-  font-size: 1.35rem;
+  font-size: 30px;
+  line-height: 1;
   font-weight: 800;
 }
 
@@ -337,6 +339,22 @@ h1 {
 
 .batch-x.is-selected svg {
   transform: scale(1);
+}
+
+.task-action-slot {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.task-action-slot .batch-x {
+  position: relative;
+  right: auto;
+  top: auto;
+  transform: none;
 }
 
 .confirm-text {
@@ -740,6 +758,10 @@ h1 {
   -webkit-touch-callout: none;
 }
 
+.expense-card.is-batch {
+  padding-right: 56px;
+}
+
 .expense-card.is-clickable {
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
@@ -788,6 +810,8 @@ h1 {
   flex-direction: column;
   align-items: flex-end;
   gap: 3px;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .expense-amt {
@@ -806,6 +830,10 @@ h1 {
   flex: none;
   margin-left: -4px;
   color: var(--ink-faint);
+}
+
+.expense-card.is-batch .batch-x {
+  right: 14px;
 }
 
 .detail-head {
@@ -1025,6 +1053,10 @@ h1 {
   -webkit-touch-callout: none;
 }
 
+.rec-card.is-batch .rec-head {
+  padding-right: 56px;
+}
+
 .rec-head {
   width: 100%;
   display: flex;
@@ -1063,6 +1095,7 @@ h1 {
 }
 
 .rec-title small {
+  min-width: 0;
   color: var(--ink-soft);
   font-size: 12.5px;
   font-weight: 500;
@@ -1099,6 +1132,10 @@ h1 {
 
 .rec-card.is-open .rec-caret {
   transform: rotate(90deg);
+}
+
+.rec-card.is-batch .batch-x {
+  right: 14px;
 }
 
 .rec-detail {

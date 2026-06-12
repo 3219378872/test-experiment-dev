@@ -62,7 +62,13 @@ export function TaskCard({ task, now, onToggle, onEdit, batch, shakeDelay }: Tas
             <span>{taskTimeNote(task, now)}</span>
           </div>
         </div>
-        {inBatch ? <BatchXButton selected={batch.selected.has(task.id)} onToggle={() => batch.toggle(task.id)} /> : <TaskCheck checked={status === 'done'} ink={style.ink} onToggle={() => onToggle(task.id)} />}
+        {inBatch ? (
+          <span className="task-action-slot">
+            <BatchXButton selected={batch.selected.has(task.id)} onToggle={() => batch.toggle(task.id)} />
+          </span>
+        ) : (
+          <TaskCheck checked={status === 'done'} ink={style.ink} onToggle={() => onToggle(task.id)} />
+        )}
       </div>
     </div>
   );
