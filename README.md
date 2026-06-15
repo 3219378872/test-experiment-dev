@@ -139,6 +139,67 @@ pnpm test && pnpm test:e2e
 
 ---
 
+## 常见问题排查
+
+### `pnpm dev` / `pnpm install` 报错 `ERR_PNPM_IGNORED_BUILDS`
+
+**现象**：执行 `pnpm dev` 时启动失败，输出类似：
+
+```
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: unrs-resolver@1.12.2
+Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+[ERROR] Command failed with exit code 1: ... pnpm install
+```
+
+**原因**：pnpm 10+ 默认不执行依赖的安装脚本（出于供应链安全考虑）。本项目的 `unrs-resolver`（`eslint-import-resolver-typescript` 的原生解析器）带有 `postinstall` 构建脚本，未经批准时会被忽略；而 `pnpm dev` 启动前会做依赖状态检查，从而以非零码退出。
+
+**解决**：在 `pnpm-workspace.yaml` 中批准该构建脚本，然后重新安装：
+
+```yaml
+# pnpm-workspace.yaml
+onlyBuiltDependencies:
+  - unrs-resolver
+```
+
+```bash
+pnpm install   # 触发 unrs-resolver 的 postinstall 构建
+pnpm dev       # 即可正常启动，默认监听 http://localhost:5173/
+```
+
+> 若环境启用了供应链策略包装器，`pnpm-workspace.yaml` 中还可能出现 `allowBuilds: { unrs-resolver: set this to true or false }` 占位项，需将其值显式改为 `true` 后再安装。
+
+---
+
+### `pnpm test:e2e` 报错 `browserType.launch: Executable doesn't exist`
+
+**现象**：执行 `pnpm test:e2e` 时所有用例失败，输出类似：
+
+```
+Error: browserType.launch: Executable doesn't exist at
+/home/<user>/.cache/ms-playwright/chromium_headless_shell-XXXX/chrome-headless-shell-linux64/chrome-headless-shell
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║     pnpm exec playwright install                           ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+**原因**：`pnpm install` 只安装了 Playwright 的 npm 包，并不会自动下载其驱动的浏览器二进制（Chromium 等）。浏览器被缓存在 `~/.cache/ms-playwright/` 下，需要单独执行一次安装命令。首次克隆项目、更换机器，或升级 Playwright 版本（缓存目录带版本号，旧版本不复用）时都会触发此错误。
+
+**解决**：下载本项目所需的浏览器（仅用 Chromium，无需全量安装）：
+
+```bash
+pnpm exec playwright install chromium
+```
+
+```bash
+pnpm test:e2e   # 浏览器就绪后即可正常运行
+```
+
+> 如需在全新的 Linux 环境运行，浏览器可能还缺少系统依赖库，可改用 `pnpm exec playwright install --with-deps chromium` 一并安装系统依赖（该命令需要 sudo 权限）。
+
+---
+
 ## 项目结构
 
 ```
